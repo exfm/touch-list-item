@@ -11,7 +11,9 @@
   "scripts": {
     "test": "grunt test"
   },
-  "dependencies": {},
+  "dependencies": {
+      "touch-element": "git://github.com/exfm/touch-element.git"
+  },
   "devDependencies": {
     "grunt-mocha": "0.1.3",
     "mocha": "1.4.1",
