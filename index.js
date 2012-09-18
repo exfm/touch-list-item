@@ -1,11 +1,8 @@
 (function(){
-    "use strict";
-    
-    var util = require('util'),
-        touchElement = require('touch-element');    
+    "use strict";   
     
 function TouchListItem(el, opts){
-
+    
     // the element we are attaching to. Required.
     if(el){
         this.el = el;
@@ -15,35 +12,24 @@ function TouchListItem(el, opts){
         throw new TypeError("You must provide an element");
     }
     
-    // the class we will add to the element when touch starts
-    this.touchStartClass = opts.touchStartClass || "touchstart";
+    var touchElement;
     
-    // the class we will add to the element when touch ends
-    this.touchEndClass = opts.touchEndClass || null;
+    // requires touch-element as super
+    if(typeof module !== "undefined"){
+        var TouchElement = require('touch-element');
+        touchElement = new TouchElement(this.el);
+    }
+    else{
+        touchElement = new window.TouchElement(this.el, opts);
+    }
+    $.extend(this, touchElement);
     
-    // should we add rgba(0,0,0,0) to webkitTapHighlightColor style on 
-    // element to remove the tap highlight?
-    this.removeTapHighlight = opts.removeTapHighlight || true;
-    if(this.removeTapHighlight){
-        this.el.style.webkitTapHighlightColor = "rgba(0,0,0,0)";
-    };
-
-    // should we add 'none' to webkitTouchCallout style on element
-    // to remove touchCallout?
-    this.removeTouchCallout = opts.removeTouchCallout || true;
-    if(this.removeTouchCallout){
-        this.el.style.webkitTouchCallout = "none";
-    };
-
-    // should we add 'none' to webkitUserSelect style on element
-    // to remove userSelect?
-    this.removeUserSelect = opts.removeUserSelect || true;
-    if (this.removeUserSelect) {
-        this.el.style.webkitUserSelect = "none";
-    };
     
     // How long does touch need to go before we register it?
-    this.timeoutMs = opts.timeoutMs || 100;
+    this.timeoutMs = 100;
+    
+    // extend all options passed in to this
+    $.extend(this, opts);  
     
     // Keep track of the setTimeout
     this.timeout = null;
@@ -51,10 +37,10 @@ function TouchListItem(el, opts){
 }
 
 // inherit from touch-element
-util.inherits(TouchListItem, touchElement);
+//util.inherits(TouchListItem, touchElement);
 
 // add touch listeners to the element
-TouchListItem.prototype.addListeners(){
+TouchListItem.prototype.addListeners = function(){
     this.el.addEventListener(
         "touchstart", 
         this.touchStartListener.bind(this), 
