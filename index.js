@@ -174,6 +174,7 @@ TouchListItem.prototype.touchEndListener = function(e){
 TouchListItem.prototype.touchMoveListener = function(e){
     clearTimeout(this.timeout);
     this.removeTouchStartClass(e);
+    $(this.el).removeClass(this.touchEndClass);
 }
 
 // for non-touch devices. Trigger a 'touched' event on click.
