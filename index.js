@@ -165,7 +165,10 @@ TouchListItem.prototype.touchStartListener = function(e){
 // removeTouchStartClass comes from touch-element
 TouchListItem.prototype.touchEndListener = function(e){
     clearTimeout(this.timeout);
-    this.removeTouchStartClass(e);
+    if($(this.el).hasClass(this.touchStartClass)){
+        this.removeTouchStartClass(e);
+        $(this.el).trigger('touched');
+    }
 }
 
 // listen for 'touchmove' event. Clear the timeout
