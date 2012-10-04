@@ -35,6 +35,9 @@ function TouchListItem(el, opts){
     // the class we will add to element on touchstart
     this.touchStartClass = 'touchstart';
     
+    // the class we will add to the element on touchend
+    this.touchEndClass = '';
+    
     // extend all options passed in to this
     $.extend(this, opts);  
     
