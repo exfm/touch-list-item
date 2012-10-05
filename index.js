@@ -44,36 +44,16 @@ function TouchListItem(el, opts){
     // Keep track of the setTimeout
     this.timeout = null;
     
-    // boolean if the element has touchStart class 
-    this.hasTouchStartClass = false;
+    // boolean if the element parent moved
+    this.moved = false;
     
     this.addStyleOptions();
     
 }
 
-// remove touch and click listeners to the element
-// if it is not a touch device, add 'click' listener
-TouchListItem.prototype.removeListeners = function(){
-    this.el.removeEventListener(
-        'touchstart', 
-        this.bindedTouchStartListener
-    );
-    this.el.removeEventListener(
-        'touchend', 
-        this.bindedTouchEndListener
-    );
-    this.el.removeEventListener(
-        'touchmove', 
-        this.bindedTouchMoveListener
-    );
-    this.el.removeEventListener(
-        'click', 
-        this.bindedClickListener
-    );
-}
-
 // add touch listeners to the element
 TouchListItem.prototype.addListeners = function(){
+    this.removeListeners();
     if(this.isTouchDevice){
         this.bindedTouchStartListener = this.touchStartListener.bind(this);
         this.bindedTouchEndListener = this.touchEndListener.bind(this);
@@ -88,7 +68,7 @@ TouchListItem.prototype.addListeners = function(){
             this.bindedTouchEndListener, 
             true
         );
-        this.el.addEventListener(
+        this.el.parentNode.addEventListener(
             "touchmove", 
             this.bindedTouchMoveListener, 
             true
@@ -102,6 +82,27 @@ TouchListItem.prototype.addListeners = function(){
             false
         );
     }
+}
+
+// remove touch and click listeners to the element
+// if it is not a touch device, add 'click' listener
+TouchListItem.prototype.removeListeners = function(){
+    this.el.removeEventListener(
+        'touchstart', 
+        this.bindedTouchStartListener
+    );
+    this.el.removeEventListener(
+        'touchend', 
+        this.bindedTouchEndListener
+    );
+    this.el.parentNode.removeEventListener(
+        'touchmove', 
+        this.bindedTouchMoveListener
+    );
+    this.el.removeEventListener(
+        'click', 
+        this.bindedClickListener
+    );
 }
 
 // Add styles based on instance options
@@ -129,32 +130,18 @@ TouchListItem.prototype.addStyleOptions = function(){
 // add touchStartClass to element. 
 // remove touchEndClass
 TouchListItem.prototype.addTouchStartClass = function(e){
-    if (this.hasTouchStartClass == false){
-        if(this.touchEndClass){
-            $(this.el).removeClass(this.touchEndClass);
-        }
-        $(this.el).addClass(this.touchStartClass);
-        this.hasTouchStartClass = true;
-    }
+    $(this.el).removeClass(this.touchEndClass)
+        .addClass(this.touchStartClass);
 }
 
-// add touchEndClass to element
-// remove touchStartClass
-TouchListItem.prototype.removeTouchStartClass = function(e){
-    if (this.hasTouchStartClass == true){
-        $(this.el).removeClass(this.touchStartClass);
-        if(this.touchEndClass){
-            $(this.el).addClass(this.touchEndClass);
-        }
-        this.hasTouchStartClass = false;
-    }
-}
 
 // listen for 'touchstart' event. Set a timer for timeoutMs 
 // After that time has passed if we are still touching, add
 // touchStartClass to element.
 // addTouchStartClass comes from touch-element
 TouchListItem.prototype.touchStartListener = function(e){
+    this.moved = false;
+    clearTimeout(this.timeout);
     this.timeout = setTimeout(
         function(){ 
             this.addTouchStartClass(e)
@@ -164,23 +151,25 @@ TouchListItem.prototype.touchStartListener = function(e){
 }
 
 // listen for 'touchend' event. Clear the timeout
-// and remove the touchStartClass from element
-// removeTouchStartClass comes from touch-element
+// if the element's parent didn't move, remove touchStarClass
+// add touchEndClass and fire 'touched' event
 TouchListItem.prototype.touchEndListener = function(e){
     clearTimeout(this.timeout);
-    if($(this.el).hasClass(this.touchStartClass)){
-        this.removeTouchStartClass(e);
-        $(this.el).trigger('touched');
+    if(this.moved == false){
+        $(this.el).removeClass(this.touchStartClass)
+            .addClass(this.touchEndClass)
+            .trigger('touched');
     }
 }
 
 // listen for 'touchmove' event. Clear the timeout
-// and remove the touchStartClass from element
-// removeTouchStartClass comes from touch-element
+// set this.moved to true
+// and remove the touchStartClass and touchEndClass from element
 TouchListItem.prototype.touchMoveListener = function(e){
+    this.moved = true;
     clearTimeout(this.timeout);
-    this.removeTouchStartClass(e);
-    $(this.el).removeClass(this.touchEndClass);
+    $(this.el).removeClass(this.touchStartClass)
+        .removeClass(this.touchEndClass);
 }
 
 // for non-touch devices. Trigger a 'touched' event on click.
