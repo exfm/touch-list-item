@@ -1,32 +1,28 @@
 (function(){
     "use strict";   
     
-function TouchListItem(el, opts){
 
+function TouchListItem(el, opts){
+    
     // Is this a touch device? Or just mouse clicks?
     this.isTouchDevice = 'ontouchstart' in document.documentElement;
     
-    // the element we are attaching to. Required.
-    if(el){
-        this.el = el;
-        this.removeListeners();
-        this.addListeners();
-    }
-    else{
-        throw new TypeError("You must provide an element");
-    }
-    
+    // $ cache the element
+    this.el = $(el);
+        
+    // add our listeners
+    this.addListeners();
     
     // should we add rgba(0,0,0,0) to webkitTapHighlightColor style on 
-    // element to remove the tap highlight?
+    // element children to remove the tap highlight?
     this.removeTapHighlight = true;
     
     // should we add 'none' to webkitTouchCallout style on element
-    // to remove touchCallout?
+    // children to remove touchCallout?
     this.removeTouchCallout = true;
     
     // should we add 'none' to webkitUserSelect style on element
-    // to remove userSelect?
+    //  childrento remove userSelect?
     this.removeUserSelect = true;
     
     // How long does touch need to go before we register it?
@@ -49,6 +45,7 @@ function TouchListItem(el, opts){
     
     this.addStyleOptions();
     
+    return this.el;
 }
 
 // add touch listeners to the element
@@ -58,17 +55,17 @@ TouchListItem.prototype.addListeners = function(){
         this.bindedTouchStartListener = this.touchStartListener.bind(this);
         this.bindedTouchEndListener = this.touchEndListener.bind(this);
         this.bindedTouchMoveListener = this.touchMoveListener.bind(this);
-        this.el.addEventListener(
+        this.el.bind(
             "touchstart", 
             this.bindedTouchStartListener, 
             true
         );
-        this.el.addEventListener(
+        this.el.bind(
             "touchend", 
             this.bindedTouchEndListener, 
             true
         );
-        this.el.parentNode.addEventListener(
+        this.el.bind(
             "touchmove", 
             this.bindedTouchMoveListener, 
             true
@@ -76,7 +73,7 @@ TouchListItem.prototype.addListeners = function(){
     }
     else{
         this.bindedClickListener = this.clickListener.bind(this);
-        this.el.addEventListener(
+        this.el.bind(
             'click', 
             this.bindedClickListener, 
             false
@@ -87,19 +84,19 @@ TouchListItem.prototype.addListeners = function(){
 // remove touch and click listeners to the element
 // if it is not a touch device, add 'click' listener
 TouchListItem.prototype.removeListeners = function(){
-    this.el.removeEventListener(
+    this.el.unbind(
         'touchstart', 
         this.bindedTouchStartListener
     );
-    this.el.removeEventListener(
+    this.el.unbind(
         'touchend', 
         this.bindedTouchEndListener
     );
-    this.el.parentNode.removeEventListener(
+    this.el.unbind(
         'touchmove', 
         this.bindedTouchMoveListener
     );
-    this.el.removeEventListener(
+    this.el.unbind(
         'click', 
         this.bindedClickListener
     );
@@ -108,19 +105,19 @@ TouchListItem.prototype.removeListeners = function(){
 // Add styles based on instance options
 TouchListItem.prototype.addStyleOptions = function(){
     if(this.removeTapHighlight){
-        $(this.el).css(
+        this.el.children().css(
             'webkitTapHighlightColor', 
             'rgba(0,0,0,0)'
         );
     };
     if(this.removeTouchCallout){
-        $(this.el).css(
+        this.el.children().css(
             'webkitTouchCallout', 
             'none'
         );
     };
     if (this.removeUserSelect) {
-        $(this.el).css(
+        this.el.children().css(
             'webkitUserSelect', 
             'none'
         );
@@ -129,8 +126,8 @@ TouchListItem.prototype.addStyleOptions = function(){
 
 // add touchStartClass to element. 
 // remove touchEndClass
-TouchListItem.prototype.addTouchStartClass = function(e){
-    $(this.el).removeClass(this.touchEndClass)
+TouchListItem.prototype.addTouchStartClass = function(target){
+    $(target).removeClass(this.touchEndClass)
         .addClass(this.touchStartClass);
 }
 
@@ -144,7 +141,7 @@ TouchListItem.prototype.touchStartListener = function(e){
     clearTimeout(this.timeout);
     this.timeout = setTimeout(
         function(){ 
-            this.addTouchStartClass(e)
+            this.addTouchStartClass(e.target)
         }.bind(this),
         this.timeoutMs 
     );
@@ -156,9 +153,11 @@ TouchListItem.prototype.touchStartListener = function(e){
 TouchListItem.prototype.touchEndListener = function(e){
     clearTimeout(this.timeout);
     if(this.moved == false){
-        $(this.el).removeClass(this.touchStartClass)
-            .addClass(this.touchEndClass)
-            .trigger('touched');
+        $(e.target).removeClass(this.touchStartClass)
+            .addClass(this.touchEndClass);
+        this.el.trigger('touched', {
+            'touchedElement': e.target
+        });
     }
 }
 
@@ -168,13 +167,15 @@ TouchListItem.prototype.touchEndListener = function(e){
 TouchListItem.prototype.touchMoveListener = function(e){
     this.moved = true;
     clearTimeout(this.timeout);
-    $(this.el).removeClass(this.touchStartClass)
+    $(this.el.children()).removeClass(this.touchStartClass)
         .removeClass(this.touchEndClass);
 }
 
 // for non-touch devices. Trigger a 'touched' event on click.
 TouchListItem.prototype.clickListener = function(e){
-    $(this.el).trigger('touched');
+    this.el.trigger('touched', {
+        'touchedElement': e.target
+    });
 }
 
 // check if we've got require
