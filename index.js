@@ -126,9 +126,22 @@ TouchListItem.prototype.addStyleOptions = function(){
 
 // add touchStartClass to element. 
 // remove touchEndClass
-TouchListItem.prototype.addTouchStartClass = function(target){
-    $(target).removeClass(this.touchEndClass)
+TouchListItem.prototype.addTouchStartClass = function(el){
+    $(el).removeClass(this.touchEndClass)
         .addClass(this.touchStartClass);
+}
+
+TouchListItem.prototype.getTarget = function(el){
+    var target = el;
+    if(this.listItemClass){
+        if($(el).hasClass(this.listItemClass)){
+            target = el;
+        }
+        else{
+            target = $(el).parents('.'+this.listItemClass);
+        }
+    }
+    return target;
 }
 
 
@@ -141,7 +154,8 @@ TouchListItem.prototype.touchStartListener = function(e){
     clearTimeout(this.timeout);
     this.timeout = setTimeout(
         function(){ 
-            this.addTouchStartClass(e.target)
+            var target = this.getTarget(e.target);
+            this.addTouchStartClass(target)
         }.bind(this),
         this.timeoutMs 
     );
@@ -153,10 +167,11 @@ TouchListItem.prototype.touchStartListener = function(e){
 TouchListItem.prototype.touchEndListener = function(e){
     clearTimeout(this.timeout);
     if(this.moved == false){
-        $(e.target).removeClass(this.touchStartClass)
+        var target = this.getTarget(e.target);
+        $(target).removeClass(this.touchStartClass)
             .addClass(this.touchEndClass);
         this.el.trigger('touched', {
-            'touchedElement': e.target
+            'touchedElement': target
         });
     }
 }
@@ -173,9 +188,13 @@ TouchListItem.prototype.touchMoveListener = function(e){
 
 // for non-touch devices. Trigger a 'touched' event on click.
 TouchListItem.prototype.clickListener = function(e){
-    this.el.trigger('touched', {
-        'touchedElement': e.target
-    });
+    var target = this.getTarget(e.target);
+    this.el.trigger(
+        'touched', 
+        {
+            'touchedElement': target
+        }
+    );
 }
 
 // check if we've got require
