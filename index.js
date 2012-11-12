@@ -154,8 +154,8 @@ TouchListItem.prototype.touchStartListener = function(e){
     clearTimeout(this.timeout);
     this.timeout = setTimeout(
         function(){ 
-            var target = this.getTarget(e.target);
-            this.addTouchStartClass(target)
+            this.touchTarget = $(this.getTarget(e.target));
+            this.addTouchStartClass(this.touchTarget);
         }.bind(this),
         this.timeoutMs 
     );
@@ -182,8 +182,10 @@ TouchListItem.prototype.touchEndListener = function(e){
 TouchListItem.prototype.touchMoveListener = function(e){
     this.moved = true;
     clearTimeout(this.timeout);
-    $(this.el.children()).removeClass(this.touchStartClass)
-        .removeClass(this.touchEndClass);
+    if(this.touchTarget){
+        this.touchTarget.removeClass(this.touchStartClass)
+            .removeClass(this.touchEndClass);
+    }
 }
 
 // for non-touch devices. Trigger a 'touched' event on click.
