@@ -124,13 +124,7 @@ TouchListItem.prototype.addStyleOptions = function(){
     };
 }
 
-// add touchStartClass to element. 
-// remove touchEndClass
-TouchListItem.prototype.addTouchStartClass = function(el){
-    $(el).removeClass(this.touchEndClass)
-        .addClass(this.touchStartClass);
-}
-
+// get the target from the liteItemClass option
 TouchListItem.prototype.getTarget = function(el){
     var target = el;
     if(this.listItemClass){
@@ -152,10 +146,14 @@ TouchListItem.prototype.getTarget = function(el){
 TouchListItem.prototype.touchStartListener = function(e){
     this.moved = false;
     clearTimeout(this.timeout);
-    this.timeout = setTimeout(
+     this.timeout = setTimeout(
         function(){ 
-            this.touchTarget = $(this.getTarget(e.target));
-            this.addTouchStartClass(this.touchTarget);
+            webkitRequestAnimationFrame($.proxy(function(){
+                this.touchTarget = $(this.getTarget(e.target));
+                $(this.touchTarget).removeClass(this.touchEndClass)
+                    .addClass(this.touchStartClass);
+            }, this));
+            
         }.bind(this),
         this.timeoutMs 
     );
@@ -166,13 +164,15 @@ TouchListItem.prototype.touchStartListener = function(e){
 // add touchEndClass and fire 'touched' event
 TouchListItem.prototype.touchEndListener = function(e){
     clearTimeout(this.timeout);
-    if(this.moved == false){
-        var target = this.getTarget(e.target);
-        $(target).removeClass(this.touchStartClass)
-            .addClass(this.touchEndClass);
-        this.el.trigger('touched', {
-            'touchedElement': target
-        });
+     if(this.moved == false){
+        webkitRequestAnimationFrame($.proxy(function(){
+            var target = this.getTarget(e.target);
+            $(target).removeClass(this.touchStartClass)
+                .addClass(this.touchEndClass);
+            this.el.trigger('touched', {
+                'touchedElement': target
+            });
+        }, this));
     }
 }
 
@@ -183,8 +183,10 @@ TouchListItem.prototype.touchMoveListener = function(e){
     this.moved = true;
     clearTimeout(this.timeout);
     if(this.touchTarget){
-        this.touchTarget.removeClass(this.touchStartClass)
-            .removeClass(this.touchEndClass);
+        webkitRequestAnimationFrame($.proxy(function(){
+            this.touchTarget.removeClass(this.touchStartClass)
+                .removeClass(this.touchEndClass);
+        }, this));
     }
 }
 
