@@ -148,11 +148,11 @@ TouchListItem.prototype.touchStartListener = function(e){
     clearTimeout(this.timeout);
      this.timeout = setTimeout(
         function(){ 
-            webkitRequestAnimationFrame($.proxy(function(){
+            this.requestAnimationFrame(function(){
                 this.touchTarget = $(this.getTarget(e.target));
                 $(this.touchTarget).removeClass(this.touchEndClass)
                     .addClass(this.touchStartClass);
-            }, this));
+            });
             
         }.bind(this),
         this.timeoutMs 
@@ -165,14 +165,14 @@ TouchListItem.prototype.touchStartListener = function(e){
 TouchListItem.prototype.touchEndListener = function(e){
     clearTimeout(this.timeout);
      if(this.moved == false){
-        webkitRequestAnimationFrame($.proxy(function(){
+        this.requestAnimationFrame(function(){
             var target = this.getTarget(e.target);
             $(target).removeClass(this.touchStartClass)
                 .addClass(this.touchEndClass);
             this.el.trigger('touched', {
                 'touchedElement': target
             });
-        }, this));
+        });
     }
 }
 
@@ -183,10 +183,10 @@ TouchListItem.prototype.touchMoveListener = function(e){
     this.moved = true;
     clearTimeout(this.timeout);
     if(this.touchTarget){
-        webkitRequestAnimationFrame($.proxy(function(){
+        this.requestAnimationFrame(function(){
             this.touchTarget.removeClass(this.touchStartClass)
                 .removeClass(this.touchEndClass);
-        }, this));
+        });
     }
 }
 
@@ -199,6 +199,19 @@ TouchListItem.prototype.clickListener = function(e){
             'touchedElement': target
         }
     );
+}
+
+// use rAF if we've got it
+TouchListItem.prototype.requestAnimationFrame = function(func){
+    var rAF = window.requestAnimationFrame || 
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame;
+    if(rAF){
+        rAF($.proxy(func, this));
+    }
+    else{
+        func.call(this);
+    }
 }
 
 // check if we've got require
