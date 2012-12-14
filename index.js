@@ -15,15 +15,19 @@ function TouchListItem(el, opts){
     
     // should we add rgba(0,0,0,0) to webkitTapHighlightColor style on 
     // element children to remove the tap highlight?
-    this.removeTapHighlight = true;
+    this.removeTapHighlight = false;
     
     // should we add 'none' to webkitTouchCallout style on element
     // children to remove touchCallout?
-    this.removeTouchCallout = true;
+    this.removeTouchCallout = false;
     
     // should we add 'none' to webkitUserSelect style on element
-    //  childrento remove userSelect?
-    this.removeUserSelect = true;
+    //  children to remove userSelect?
+    this.removeUserSelect = false;
+    
+    // should we add 'translate3d(0,0,0)' to webkitTransform style on element
+    //  children for iOS5 fix?
+    this.addTranslate3d = /OS 5(_\d)+ like Mac OS X/i.test(navigator.userAgent);
     
     // How long does touch need to go before we register it?
     this.timeoutMs = 100;
@@ -104,24 +108,38 @@ TouchListItem.prototype.removeListeners = function(){
 
 // Add styles based on instance options
 TouchListItem.prototype.addStyleOptions = function(){
+    var addStyle = false;
+    var children = [];
+    if(this.listItemClass){
+        children = this.el.find('.'+this.listItemClass);
+    }
+    else{
+        children = this.el.children();
+    };
+    var style = {};
     if(this.removeTapHighlight){
-        this.el.children().css(
-            'webkitTapHighlightColor', 
-            'rgba(0,0,0,0)'
-        );
+        style['-webkit-tap-highlight-color'] = 'rgba(0,0,0,0)';
+        addStyle = true;
     };
     if(this.removeTouchCallout){
-        this.el.children().css(
-            'webkitTouchCallout', 
-            'none'
-        );
+        style['-webkit-touch-callout'] = 'none';
+        addStyle = true;
     };
-    if (this.removeUserSelect) {
-        this.el.children().css(
-            'webkitUserSelect', 
-            'none'
-        );
+    if(this.removeUserSelect) {
+        style['-webkit-user-select'] = 'none';
+        addStyle = true;
     };
+    if(this.addTranslate3d){
+        style['-webkit-transform'] = 'translate3d(0,0,0)';
+        addStyle = true;
+    };
+    if(addStyle === true){
+        this.requestAnimationFrame(
+            function(){
+                children.css(style);
+            }
+        );
+    }
 }
 
 // get the target from the liteItemClass option
@@ -153,7 +171,6 @@ TouchListItem.prototype.touchStartListener = function(e){
                 $(this.touchTarget).removeClass(this.touchEndClass)
                     .addClass(this.touchStartClass);
             });
-            
         }.bind(this),
         this.timeoutMs 
     );
