@@ -156,24 +156,39 @@ TouchListItem.prototype.getTarget = function(el){
     return target;
 }
 
+// check for avoid targets
+TouchListItem.prototype.isAvoidTarget = function(el){
+    if(!this.avoidClass){
+        return false;
+    }
+    else{
+        return $(el).hasClass(this.avoidClass);
+    }
+}
+
 
 // listen for 'touchstart' event. Set a timer for timeoutMs 
 // After that time has passed if we are still touching, add
 // touchStartClass to element.
 // addTouchStartClass comes from touch-element
 TouchListItem.prototype.touchStartListener = function(e){
-    this.moved = false;
-    clearTimeout(this.timeout);
-     this.timeout = setTimeout(
-        function(){ 
-            this.requestAnimationFrame(function(){
-                this.touchTarget = $(this.getTarget(e.target));
-                $(this.touchTarget).removeClass(this.touchEndClass)
-                    .addClass(this.touchStartClass);
-            });
-        }.bind(this),
-        this.timeoutMs 
-    );
+    if(this.isAvoidTarget(e.target) === false){
+        this.moved = false;
+        clearTimeout(this.timeout);
+         this.timeout = setTimeout(
+            function(){ 
+                this.requestAnimationFrame(function(){
+                    this.touchTarget = $(this.getTarget(e.target));
+                    $(this.touchTarget).removeClass(this.touchEndClass)
+                        .addClass(this.touchStartClass);
+                });
+            }.bind(this),
+            this.timeoutMs 
+        );
+    }
+    else{
+        this.moved = true;
+    }
 }
 
 // listen for 'touchend' event. Clear the timeout
