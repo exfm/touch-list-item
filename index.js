@@ -9,9 +9,6 @@ function TouchListItem(el, opts){
     
     // $ cache the element
     this.el = $(el);
-        
-    // add our listeners
-    this.addListeners();
     
     // should we add rgba(0,0,0,0) to webkitTapHighlightColor style on 
     // element children to remove the tap highlight?
@@ -38,6 +35,9 @@ function TouchListItem(el, opts){
     // the class we will add to the element on touchend
     this.touchEndClass = '';
     
+    // boolean if we should trigger 'hitBottom' event
+    this.triggerHitBottom = false;
+    
     // extend all options passed in to this
     $.extend(this, opts);  
     
@@ -48,6 +48,9 @@ function TouchListItem(el, opts){
     this.moved = false;
     
     this.addStyleOptions();
+    
+    // add our listeners
+    this.addListeners();
     
     return this.el;
 }
@@ -83,6 +86,15 @@ TouchListItem.prototype.addListeners = function(){
             false
         );
     }
+    if(this.triggerHitBottom === true){
+        this.hitBottomTriggered = false;
+        this.bindedScrollListener = this.scrollListener.bind(this);
+        this.el.bind(
+            'scroll', 
+            this.bindedScrollListener, 
+            true
+        );
+    }
 }
 
 // remove touch and click listeners to the element
@@ -103,6 +115,10 @@ TouchListItem.prototype.removeListeners = function(){
     this.el.unbind(
         'click', 
         this.bindedClickListener
+    );
+    this.el.unbind(
+        'scroll', 
+        this.bindedScrollListener
     );
 }
 
@@ -231,6 +247,21 @@ TouchListItem.prototype.clickListener = function(e){
             'touchedElement': target
         }
     );
+}
+
+TouchListItem.prototype.scrollListener = function(e){
+    if(
+        e.target.scrollHeight - e.target.offsetHeight - 100 <= e.target.scrollTop &&
+        this.hitBottomTriggered === false
+    ){
+        this.hitBottomTriggered = true;
+        this.el.trigger(
+            'hitBottom',
+            {
+                'target': this
+            }
+        );
+    }
 }
 
 // use rAF if we've got it
