@@ -2,7 +2,7 @@
   "author": "Dan Kantor <dan@ex.fm>",
   "name": "touch-list-item",
   "description": "",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "homepage": "http://github.com/exfm/touch-list-item",
   "repository": {
     "type": "git",
@@ -16,8 +16,7 @@
   },
   "devDependencies": {
     "grunt-mocha": "0.1.3",
-    "mocha": "1.4.1",
-    "chai": "1.2.0"
+    "mocha": "1.4.1"
   },
   "optionalDependencies": {},
   "engines": {
