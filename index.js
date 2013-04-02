@@ -240,13 +240,15 @@ TouchListItem.prototype.touchMoveListener = function(e){
 
 // for non-touch devices. Trigger a 'touched' event on click.
 TouchListItem.prototype.clickListener = function(e){
-    var target = this.getTarget(e.target);
-    this.el.trigger(
-        'touched', 
-        {
-            'touchedElement': target
-        }
-    );
+    if(this.isAvoidTarget(e.target) === false){
+        var target = this.getTarget(e.target);
+        this.el.trigger(
+            'touched', 
+            {
+                'touchedElement': target
+            }
+        );
+    };
 }
 
 TouchListItem.prototype.scrollListener = function(e){
