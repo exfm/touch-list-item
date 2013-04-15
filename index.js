@@ -7,6 +7,11 @@ function TouchListItem(el, opts){
     // Is this a touch device? Or just mouse clicks?
     this.isTouchDevice = 'ontouchstart' in document.documentElement;
     
+    // Hardcode ChromeOS to be report as a non-touch device
+    if(navigator.appVersion.indexOf('CrOS') != -1){
+        this.isTouchDevice = false;
+    };
+    
     // $ cache the element
     this.el = $(el);
     
