@@ -43,14 +43,31 @@ function TouchListItem(el, opts){
     // boolean if we should trigger 'hitBottom' event
     this.triggerHitBottom = false;
     
+    // boolean if we should trigger 'refresh' event
+    this.triggerRefresh = false;
+    
+    // the class we will add to the refreshTarget if specified
+    this.refreshClass = 'refreshing';
+    
+    // the negative threshold that triggers a refresh
+    this.refreshThreshold = -80;
+    
     // extend all options passed in to this
     $.extend(this, opts);  
+    
+    // cache the refresh target element
+    if(this.triggerRefresh === true){
+        this.refreshTarget =  $(this.refreshTarget);
+    };
     
     // Keep track of the setTimeout
     this.timeout = null;
     
     // boolean if the element parent moved
     this.moved = false;
+    
+    // boolean if refresh happened
+    this.shouldRefresh = false;
     
     this.addStyleOptions();
     
@@ -93,13 +110,13 @@ TouchListItem.prototype.addListeners = function(){
     }
     if(this.triggerHitBottom === true){
         this.hitBottomTriggered = false;
-        this.bindedScrollListener = this.scrollListener.bind(this);
-        this.el.bind(
-            'scroll', 
-            this.bindedScrollListener, 
-            true
-        );
-    }
+    };
+    this.bindedScrollListener = this.scrollListener.bind(this);
+    this.el.bind(
+        'scroll', 
+        this.bindedScrollListener, 
+        true
+    );
 }
 
 // remove touch and click listeners to the element
@@ -227,6 +244,9 @@ TouchListItem.prototype.touchEndListener = function(e){
             });
         });
     }
+    if(this.shouldRefresh === true){
+        this.el.trigger('refresh');
+    };
 }
 
 // listen for 'touchmove' event. Clear the timeout
@@ -257,19 +277,36 @@ TouchListItem.prototype.clickListener = function(e){
 }
 
 TouchListItem.prototype.scrollListener = function(e){
-    if(
-        e.target.scrollHeight - e.target.offsetHeight - 100 <= e.target.scrollTop &&
-        this.hitBottomTriggered === false
-    ){
-        this.hitBottomTriggered = true;
-        this.el.trigger(
-            'hitBottom',
-            {
-                'target': this
-            }
-        );
-    }
+    if(this.triggerHitBottom === true){
+        if(
+            e.target.scrollHeight - e.target.offsetHeight - 100 <= e.target.scrollTop &&
+            this.hitBottomTriggered === false
+        ){
+            this.hitBottomTriggered = true;
+            this.el.trigger(
+                'hitBottom',
+                {
+                    'target': this
+                }
+            );
+        }
+    };
+    if(this.triggerRefresh === true){
+        if(e.target.scrollTop <= this.refreshThreshold){
+            this.shouldRefresh = true;
+            this.requestAnimationFrame(function(){
+                this.refreshTarget.addClass(this.refreshClass);
+            });
+        }
+        else{
+            this.shouldRefresh = false;
+            this.requestAnimationFrame(function(){
+                this.refreshTarget.removeClass(this.refreshClass);
+            });        
+        }  
+    };
 }
+
 
 // use rAF if we've got it
 TouchListItem.prototype.requestAnimationFrame = function(func){
