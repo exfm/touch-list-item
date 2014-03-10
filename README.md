@@ -16,6 +16,5 @@ This will add and remove styles to an element in a list simliar to how iOS or An
 ## Usage
     
     var TouchListItem = require('TouchListItem'),
-        touchListItem = new TouchListItem(el);
-        
-    touchListItem.addEventListener();
+    
+    $('#el').touchList().on('touched', this.onElTouch);

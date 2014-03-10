@@ -1,63 +1,47 @@
-(function(){
-    "use strict";   
-    
+(function ($){
 
-function TouchListItem(el, opts){
+"use strict";
+
+$.fn.touchList = function(options) {
+    var opts = $.extend( {}, $.fn.touchList.defaults, options);
+    return this.each(function() {
+        new TouchList(this, opts);
+    });
+};
+
+$.fn.touchList.defaults = {
+    'isTouchDevice': 'ontouchstart' in document.documentElement,
+    'touched': function() {},
+    'removeTapHighlight': false,
+    'removeTouchCallout': false,
+    'removeUserSelect': false,
+    'addTranslate3d': /OS 5(_\d)+ like Mac OS X/i.test(navigator.userAgent),
+    'timeoutMs': 50,
+    'touchStartClass': 'touchstart',
+    'touchEndClass': '',
+    'hitbottom': function() {},
+    'hittop': function() {},
+    'shouldTriggerHitBottom': true,
+    'shouldTriggerHitTop': true,
+    'refresh': function() {},
+    'shouldDetectRefresh': true,
+    'refreshClass': 'refreshing',
+    'refreshThreshold': -80,
+    'refreshTarget': null,
+    'listItemClass': null,
+    'avoidClass': null,
+    'scrollend': function() {},
+    'triggerTimeoutDelay': 300
+};
+
+function TouchList(el, opts){
     
-    // Is this a touch device? Or just mouse clicks?
-    this.isTouchDevice = 'ontouchstart' in document.documentElement;
-    
-    // Hardcode ChromeOS to be report as a non-touch device
-    if(navigator.appVersion.indexOf('CrOS') != -1){
-        this.isTouchDevice = false;
-    };
-    
-    // $ cache the element
-    this.el = $(el);
-    
-    // should we add rgba(0,0,0,0) to webkitTapHighlightColor style on 
-    // element children to remove the tap highlight?
-    this.removeTapHighlight = false;
-    
-    // should we add 'none' to webkitTouchCallout style on element
-    // children to remove touchCallout?
-    this.removeTouchCallout = false;
-    
-    // should we add 'none' to webkitUserSelect style on element
-    //  children to remove userSelect?
-    this.removeUserSelect = false;
-    
-    // should we add 'translate3d(0,0,0)' to webkitTransform style on element
-    //  children for iOS5 fix?
-    this.addTranslate3d = /OS 5(_\d)+ like Mac OS X/i.test(navigator.userAgent);
-    
-    // How long does touch need to go before we register it?
-    this.timeoutMs = 100;
-    
-    // the class we will add to element on touchstart
-    this.touchStartClass = 'touchstart';
-    
-    // the class we will add to the element on touchend
-    this.touchEndClass = '';
-    
-    // boolean if we should trigger 'hitBottom' event
-    this.triggerHitBottom = false;
-    
-    // boolean if we should trigger 'refresh' event
-    this.triggerRefresh = false;
-    
-    // the class we will add to the refreshTarget if specified
-    this.refreshClass = 'refreshing';
-    
-    // the negative threshold that triggers a refresh
-    this.refreshThreshold = -80;
-    
-    // extend all options passed in to this
-    $.extend(this, opts);  
+   this.el = $(el);
+   this.opts = opts;
     
     // cache the refresh target element
-    if(this.triggerRefresh === true){
-        this.refreshTarget =  $(this.refreshTarget);
+    if(this.opts.shouldDetectRefresh === true){
+        this.refreshTarget = $(this.opts.refreshTarget);
     };
     
     // Keep track of the setTimeout
@@ -71,6 +55,9 @@ function TouchListItem(el, opts){
     
     this.addStyleOptions();
     
+    // remove listeners
+    this.removeListeners();
+    
     // add our listeners
     this.addListeners();
     
@@ -80,105 +67,71 @@ function TouchListItem(el, opts){
     // boolean if user is currently scrolling
     this.isScrolling = false;
     
+    // boolean to keep track of when we trigger 'touched' event
+    this.justTriggered = false;
+    
     // requestAnimationFrame
     this.rAF = window.requestAnimationFrame || 
         window.webkitRequestAnimationFrame ||
         window.mozRequestAnimationFrame;
     
-    return this.el;
-};
+
+    return this;
+    
+}
 
 // add touch listeners to the element
-TouchListItem.prototype.addListeners = function(){
-    this.removeListeners();
-    if(this.isTouchDevice){
-        this.bindedTouchStartListener = this.touchStartListener.bind(this);
-        this.bindedTouchEndListener = this.touchEndListener.bind(this);
-        this.bindedTouchMoveListener = this.touchMoveListener.bind(this);
-        this.el.on(
-            "touchstart", 
-            this.bindedTouchStartListener, 
-            true
-        );
-        this.el.on(
-            "touchend", 
-            this.bindedTouchEndListener, 
-            true
-        );
-        this.el.on(
-            "touchmove", 
-            this.bindedTouchMoveListener, 
-            true
-        );
+TouchList.prototype.addListeners = function(){
+    if(this.opts.isTouchDevice){
+        this.bindedTouchStartListener = $.proxy(this.touchStartListener, this);
+        this.bindedTouchEndListener = $.proxy(this.touchEndListener, this);
+        this.bindedTouchMoveListener = $.proxy(this.touchMoveListener, this);
+        this.el.on('touchstart', this.bindedTouchStartListener);
+        this.el.on('touchend', this.bindedTouchEndListener);
+        this.el.on('touchmove', this.bindedTouchMoveListener);
     }
     else{
-        this.bindedClickListener = this.clickListener.bind(this);
-        this.el.on(
-            'click', 
-            this.bindedClickListener, 
-            false
-        );
+        this.bindedClickListener = $.proxy(this.clickListener, this);
+        this.el.on('click', this.bindedClickListener);
     }
-    if(this.triggerHitBottom === true){
-        this.hitBottomTriggered = false;
-    };
-    this.bindedScrollListener = this.scrollListener.bind(this);
-    this.el.on(
-        'scroll', 
-        this.bindedScrollListener, 
-        true
-    );
+    this.bindedScrollListener = $.proxy(this.scrollListener, this);
+    this.el.on('scroll', this.bindedScrollListener);
 };
 
 // remove touch and click listeners to the element
 // if it is not a touch device, add 'click' listener
-TouchListItem.prototype.removeListeners = function(){
-    this.el.off(
-        'touchstart', 
-        this.bindedTouchStartListener
-    );
-    this.el.off(
-        'touchend', 
-        this.bindedTouchEndListener
-    );
-    this.el.off(
-        'touchmove', 
-        this.bindedTouchMoveListener
-    );
-    this.el.off(
-        'click', 
-        this.bindedClickListener
-    );
-    this.el.off(
-        'scroll', 
-        this.bindedScrollListener
-    );
+TouchList.prototype.removeListeners = function(){
+    this.el.off('touchstart', this.bindedTouchStartListener);
+    this.el.off('touchend', this.bindedTouchEndListener);
+    this.el.off('touchmove', this.bindedTouchMoveListener);
+    this.el.off('click', this.bindedClickListener);
+    this.el.off('scroll', this.bindedScrollListener);
 };
 
 // Add styles based on instance options
-TouchListItem.prototype.addStyleOptions = function(){
+TouchList.prototype.addStyleOptions = function(){
     var addStyle = false;
     var children = [];
-    if(this.listItemClass){
-        children = this.el.find('.'+this.listItemClass);
+    if(this.opts.listItemClass !== null){
+        children = this.el.find('.'+this.opts.listItemClass);
     }
     else{
         children = this.el.children();
     };
     var style = {};
-    if(this.removeTapHighlight){
+    if(this.opts.removeTapHighlight === true){
         style['-webkit-tap-highlight-color'] = 'rgba(0,0,0,0)';
         addStyle = true;
     };
-    if(this.removeTouchCallout){
+    if(this.opts.removeTouchCallout === true){
         style['-webkit-touch-callout'] = 'none';
         addStyle = true;
     };
-    if(this.removeUserSelect) {
+    if(this.opts.removeUserSelect === true) {
         style['-webkit-user-select'] = 'none';
         addStyle = true;
     };
-    if(this.addTranslate3d){
+    if(this.opts.addTranslate3d === true){
         style['-webkit-transform'] = 'translate3d(0,0,0)';
         addStyle = true;
     };
@@ -191,50 +144,50 @@ TouchListItem.prototype.addStyleOptions = function(){
     }
 };
 
-// get the target from the liteItemClass option
-TouchListItem.prototype.getTarget = function(el){
+// get the target from the listItemClass option
+TouchList.prototype.getTarget = function(el){
     var target = el;
-    if(this.listItemClass){
-        if($(el).hasClass(this.listItemClass)){
+    if(this.opts.listItemClass !== null){
+        if($(el).hasClass(this.opts.listItemClass)){
             target = el;
         }
         else{
-            target = $(el).parents('.'+this.listItemClass);
+            target = $(el).parents('.'+this.opts.listItemClass);
         }
     }
     return target;
 };
 
 // check for avoid targets
-TouchListItem.prototype.isAvoidTarget = function(el){
-    if(!this.avoidClass){
+TouchList.prototype.isAvoidTarget = function(el){
+    if(this.opts.avoidClass === null){
         return false;
     }
     else{
-        return $(el).hasClass(this.avoidClass);
+        return $(el).hasClass(this.opts.avoidClass);
     }
 };
-
 
 // listen for 'touchstart' event. Set a timer for timeoutMs 
 // After that time has passed if we are still touching, add
 // touchStartClass to element.
 // addTouchStartClass comes from touch-element
-TouchListItem.prototype.touchStartListener = function(e){
+TouchList.prototype.touchStartListener = function(e){
     this.isTouching = true;
     if(this.isScrolling === false){
         if(this.isAvoidTarget(e.target) === false){
             this.moved = false;
             clearTimeout(this.timeout);
-             this.timeout = setTimeout(
-                function(){ 
+            this.timeout = setTimeout(
+                $.proxy(function(){ 
                     this.requestAnimationFrame(function(){
                         this.touchTarget = $(this.getTarget(e.target));
-                        $(this.touchTarget).removeClass(this.touchEndClass)
-                            .addClass(this.touchStartClass);
+                        $(this.touchTarget)
+                            .removeClass(this.opts.touchEndClass)
+                            .addClass(this.opts.touchStartClass);
                     });
-                }.bind(this),
-                this.timeoutMs 
+                }, this),
+                this.opts.timeoutMs 
             );
         }
         else{
@@ -243,104 +196,91 @@ TouchListItem.prototype.touchStartListener = function(e){
     }
     else{
         this.setScrollingFalse();
-        this.el.one(
-            'scroll',
-            this.setScrollingFalse.bind(this)
-        );
+        this.el.one('scroll', $.proxy(this.setScrollingFalse, this));
     };
 };
 
 // listen for 'touchend' event. Clear the timeout
 // if the element's parent didn't move, remove touchStarClass
 // add touchEndClass and fire 'touched' event
-TouchListItem.prototype.touchEndListener = function(e){
+TouchList.prototype.touchEndListener = function(e){
     this.isTouching = false;
     clearTimeout(this.timeout);
-     if(this.moved === false){
+    if(this.moved === false){
         this.requestAnimationFrame(function(){
             var target = this.getTarget(e.target);
-            $(target).removeClass(this.touchStartClass)
-                .addClass(this.touchEndClass);
-            this.el.trigger('touched', {
-                'touchedElement': target
-            });
+            $(target)
+                .removeClass(this.opts.touchStartClass)
+                .addClass(this.opts.touchEndClass);
+            this.triggerTouched(e, target);
         });
     };
     if(Math.abs(this.touchMoveScrollTop - this.scrollScrollTop) > 5){
-        $(this.el).one(
-            'endScroll',
-            this.setScrollingFalse.bind(this)
-        );
+        this.el.one('endScroll', $.proxy(this.setScrollingFalse, this));
     }
     else {
         this.setScrollingFalse();
     }
     if(this.shouldRefresh === true){
-        this.el.trigger('refresh');
+        this.triggerRefresh();
     };
 };
 
 // listen for 'touchmove' event. Clear the timeout
 // set this.moved to true
 // and remove the touchStartClass and touchEndClass from element
-TouchListItem.prototype.touchMoveListener = function(e){
+TouchList.prototype.touchMoveListener = function(e){
     this.touchMoveScrollTop = this.el[0].scrollTop;
     this.moved = true;
     clearTimeout(this.timeout);
     if(this.touchTarget){
         this.requestAnimationFrame(function(){
-            this.touchTarget.removeClass(this.touchStartClass)
-                .removeClass(this.touchEndClass);
+            this.touchTarget
+                .removeClass(this.opts.touchStartClass)
+                .removeClass(this.opts.touchEndClass);
         });
     };
 };
 
 // for non-touch devices. Trigger a 'touched' event on click.
-TouchListItem.prototype.clickListener = function(e){
+TouchList.prototype.clickListener = function(e){
     if(this.isAvoidTarget(e.target) === false){
         var target = this.getTarget(e.target);
-        this.el.trigger(
-            'touched', 
-            {
-                'touchedElement': target
-            }
-        );
+        this.triggerTouched(e, target);
     };
 };
 
 // scroll listener. Handles if we've hit bottom for 
 // infinite scroll and if we pulled down to refresh
-TouchListItem.prototype.scrollListener = function(e){
+TouchList.prototype.scrollListener = function(e){
     this.isScrolling = true;
     this.scrollScrollTop = e.target.scrollTop;
-    if(this.triggerHitBottom === true){
-        if(
-            e.target.scrollHeight - e.target.offsetHeight - 100 <= e.target.scrollTop &&
-            this.hitBottomTriggered === false
-        ){
-            this.hitBottomTriggered = true;
-            this.el.trigger(
-                'hitBottom',
-                {
-                    'target': this
-                }
-            );
+    if(this.opts.shouldTriggerHitTop === true){
+        if(this.scrollScrollTop === 0){
+            this.triggerHitTop();
+        }   
+    }
+    if(this.opts.shouldTriggerHitBottom === true){
+        if(e.target.scrollHeight - e.target.offsetHeight - 100 <= e.target.scrollTop){
+            this.triggerHitBottom();
         }
     };
-    if(this.triggerRefresh === true){
-        if(e.target.scrollTop <= this.refreshThreshold){
+    if(this.opts.shouldDetectRefresh === true){
+        if(e.target.scrollTop <= this.opts.refreshThreshold){
             this.shouldRefresh = true;
-            this.requestAnimationFrame(
-                function(){
-                    this.refreshTarget.addClass(this.refreshClass);
-                }
-            );
+            if(this.refreshTarget !== null){
+                this.requestAnimationFrame(
+                    function(){
+                        this.refreshTarget.addClass(this.opts.refreshClass);
+                    }
+                );
+            }
         }
         else{
             this.shouldRefresh = false;
             this.requestAnimationFrame(
                 function(){
-                    this.refreshTarget.removeClass(this.refreshClass);
+                    this.refreshTarget.removeClass(this.opts.refreshClass);
                 }
             );        
         }  
@@ -351,13 +291,13 @@ TouchListItem.prototype.scrollListener = function(e){
 };
 
 // set this.scrolling to false
-TouchListItem.prototype.setScrollingFalse = function(e){
+TouchList.prototype.setScrollingFalse = function(e){
     this.isScrolling = false;
+    this.triggerScrollEnd();
 };
 
-
 // use rAF if we've got it
-TouchListItem.prototype.requestAnimationFrame = function(func){
+TouchList.prototype.requestAnimationFrame = function(func){
     var rAF = this.rAF;
     if(rAF){
         rAF($.proxy(func, this));
@@ -367,12 +307,52 @@ TouchListItem.prototype.requestAnimationFrame = function(func){
     }
 };
 
-// check if we've got require
-if(typeof module !== "undefined"){
-    module.exports = TouchListItem;
+
+
+// trigger our custom 'touched' event
+TouchList.prototype.triggerTouched = function(e, target){
+    if(this.justTriggered === false){
+        var newEvent = $.extend($.Event('touched', 
+            {
+                'touchedElement': target,
+                'listItem': this.el
+            }
+        ), e);
+        this.opts.touched.call(this, newEvent);
+        $(target).trigger(newEvent);
+        this.justTriggered = true;
+        this.triggerTimeout = setTimeout(
+            function(){
+                this.justTriggered = false;
+            }.bind(this),
+            this.opts.triggerTimeoutDelay
+        );
+    }
 }
-else{
-    window.TouchListItem = TouchListItem;
-};
-    
-}());
+
+// trigger our custom 'refresh' event
+TouchList.prototype.triggerRefresh = function(e){
+    this.opts.refresh.call(this, e);
+    this.el.trigger($.extend($.Event('refresh'), e));
+}
+
+// trigger our custom 'hitbottom' event
+TouchList.prototype.triggerHitBottom = function(e){
+    this.opts.hitbottom.call(this, e);
+    this.el.trigger($.extend($.Event('hitbottom'), e));
+}
+
+// trigger our custom 'hittop' event
+TouchList.prototype.triggerHitTop = function(e){
+    this.opts.hittop.call(this, e);
+    this.el.trigger($.extend($.Event('hittop'), e));
+}
+
+// trigger our custom 'scrollend' event
+TouchList.prototype.triggerScrollEnd = function(){
+    this.opts.scrollend.call(this);
+    this.el.trigger('scrollend');
+}
+
+}($)); // end
+
