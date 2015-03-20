@@ -35,9 +35,8 @@ $.fn.touchList.defaults = {
 };
 
 function TouchList(el, opts){
-    
-   this.el = $(el);
-   this.opts = opts;
+    this.el = $(el);
+    this.opts = opts;
     
     // cache the refresh target element
     if(this.opts.shouldDetectRefresh === true){
@@ -312,14 +311,9 @@ TouchList.prototype.requestAnimationFrame = function(func){
 // trigger our custom 'touched' event
 TouchList.prototype.triggerTouched = function(e, target){
     if(this.justTriggered === false){
-        var newEvent = $.extend($.Event('touched', 
-            {
-                'touchedElement': target,
-                'listItem': this.el
-            }
-        ), e);
-        this.opts.touched.call(this, newEvent);
-        $(target).trigger(newEvent);
+        this.opts.touched.call(this, e);
+        var newEvent = $.extend(e, $.Event('touched'));
+        this.el.trigger(newEvent);
         this.justTriggered = true;
         this.triggerTimeout = setTimeout(
             function(){
