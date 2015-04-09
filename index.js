@@ -327,19 +327,23 @@ TouchList.prototype.triggerTouched = function(e, target){
 // trigger our custom 'refresh' event
 TouchList.prototype.triggerRefresh = function(e){
     this.opts.refresh.call(this, e);
-    this.el.trigger($.extend($.Event('refresh'), e));
+    var newEvent = $.extend(e, $.Event('refresh'));
+    this.el.trigger(newEvent);
+    
 }
 
 // trigger our custom 'hitbottom' event
 TouchList.prototype.triggerHitBottom = function(e){
     this.opts.hitbottom.call(this, e);
-    this.el.trigger($.extend($.Event('hitbottom'), e));
+    var newEvent = $.extend(e, $.Event('hitbottom'));
+    this.el.trigger(newEvent);
 }
 
 // trigger our custom 'hittop' event
 TouchList.prototype.triggerHitTop = function(e){
     this.opts.hittop.call(this, e);
-    this.el.trigger($.extend($.Event('hittop'), e));
+    var newEvent = $.extend(e, $.Event('hittop'));
+    this.el.trigger(newEvent);
 }
 
 // trigger our custom 'scrollend' event
